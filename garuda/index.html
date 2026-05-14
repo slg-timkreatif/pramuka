@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Juri - GarudaApp</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .btn-click:active { transform: scale(0.95); transition: 0.1s; }
+        
+        /* Custom Scrollbar Tipis */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* SweetAlert Compact Style dari ScoutLive */
+        .swal2-popup { border-radius: 1rem !important; padding: 1.2rem 1rem !important; width: 90% !important; max-width: 320px !important; }
+        .swal2-title { font-size: 1.1rem !important; color: #1e293b !important; margin-bottom: 0.2rem !important; }
+        .swal2-actions { margin-top: 0.5rem !important; }
+        .swal2-confirm, .swal2-cancel { border-radius: 0.5rem !important; font-weight: bold !important; font-size: 0.85rem !important; padding: 0.6rem 1.2rem !important; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 pb-20">
+
+    <script>
+        // PASTE URL API WEB APP ANDA DI SINI
+        const API_URL = "https://script.google.com/macros/s/AKfycbxu5oVXgehZ-CM-bZJLrmgGqy-eWgL3hl-1RxuMIHutSRD_hyW_BqJ6DUeOa2R2d4y7hA/exec"; 
+    </script>
+
+    <!-- HEADER SCOUTLIVE STYLE -->
+    <div class="fixed top-0 left-0 right-0 bg-slate-900 text-white z-40 shadow-md">
+        <div class="max-w-md mx-auto px-4 h-12 flex justify-between items-center">
+            <div class="flex items-center gap-2 font-bold text-base">
+                <i data-lucide="shield" class="w-4 h-4 text-indigo-400"></i> Garuda<span class="text-indigo-400">App</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="syncIndicator" class="text-[9px] text-slate-400 flex items-center gap-1 hidden">
+                    <i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Sync...
+                </div>
+                <div id="statusDot" class="w-2.5 h-2.5 bg-gray-400 rounded-full border border-slate-700"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto pt-16 px-3">
+
+        <!-- HALAMAN LOGIN -->
+        <div id="pageLogin" class="hidden">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div class="text-center mb-5">
+                    <h2 class="text-lg font-bold text-slate-800">Login Juri</h2>
+                    <p class="text-[11px] text-gray-400">Atur sesi penilaian Garuda</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">Kategori (Wajib)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="selectCategory('Siaga PA')" id="btnSgPa" class="py-3 rounded-lg border border-slate-200 flex flex-col items-center justify-center gap-1.5 opacity-60">
+                                <div class="bg-green-100 p-1.5 rounded-full text-green-600"><i data-lucide="user" class="w-4 h-4"></i></div>
+                                <span class="font-bold text-[10px] text-slate-600">SIAGA PA</span>
+                            </button>
+                            <button onclick="selectCategory('Siaga PI')" id="btnSgPi" class="py-3 rounded-lg border border-slate-200 flex flex-col items-center justify-center gap-1.5 opacity-60">
+                                <div class="bg-green-100 p-1.5 rounded-full text-green-600"><i data-lucide="user-check" class="w-4 h-4"></i></div>
+                                <span class="font-bold text-[10px] text-slate-600">SIAGA PI</span>
+                            </button>
+                            <button onclick="selectCategory('Penggalang PA')" id="btnPgPa" class="py-3 rounded-lg border border-slate-200 flex flex-col items-center justify-center gap-1.5 opacity-60">
+                                <div class="bg-red-100 p-1.5 rounded-full text-red-600"><i data-lucide="user" class="w-4 h-4"></i></div>
+                                <span class="font-bold text-[10px] text-slate-600">PENGGALANG PA</span>
+                            </button>
+                            <button onclick="selectCategory('Penggalang PI')" id="btnPgPi" class="py-3 rounded-lg border border-slate-200 flex flex-col items-center justify-center gap-1.5 opacity-60">
+                                <div class="bg-red-100 p-1.5 rounded-full text-red-600"><i data-lucide="user-check" class="w-4 h-4"></i></div>
+                                <span class="font-bold text-[10px] text-slate-600">PENGGALANG PI</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="selectedCategory" value="">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">Aspek / Materi</label>
+                        <div class="relative">
+                            <select id="loginAspek" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-800 text-sm font-bold text-slate-700 appearance-none disabled:opacity-50" disabled>
+                                <option value="">Pilih Kategori Dulu...</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">Kode Akses</label>
+                        <input type="text" id="loginPass" placeholder="******" disabled class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-800 font-bold text-center tracking-widest text-sm disabled:opacity-50">
+                    </div>
+
+                    <button onclick="doLogin()" id="btnLoginSubmit" disabled class="w-full bg-slate-800 text-white font-bold py-3 mt-2 rounded-lg btn-click flex justify-center items-center gap-2 text-sm disabled:opacity-50">
+                        MASUK <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HALAMAN INPUT -->
+        <div id="pageInput" class="hidden space-y-3">
+            
+            <!-- TOP CARD -->
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div>
+                    <div class="flex items-center gap-1.5 mb-0.5">
+                        <span id="badgeKategori" class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-slate-200">-</span>
+                        <p class="text-[9px] text-gray-400 uppercase font-bold tracking-wider">ASPEK PENILAIAN:</p>
+                    </div>
+                    <h2 id="userAspekName" class="text-base font-bold text-slate-800 leading-tight">...</h2>
+                </div>
+                <div class="flex gap-1.5">
+                    <button onclick="tampilkanRekap()" class="bg-blue-50 text-blue-600 p-2 rounded-lg border border-blue-100 hover:bg-blue-100 btn-click" title="Rekap">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="doLogout()" class="bg-red-50 text-red-600 p-2 rounded-lg border border-red-100 hover:bg-red-100 btn-click" title="Keluar">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- LIST CARD -->
+            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">
+                
+                <div class="flex justify-between items-center mb-3 px-1 border-b border-slate-100 pb-2">
+                    <span id="counterSisa" class="text-[10px] font-bold text-slate-500"><i data-lucide="list" class="w-3 h-3 inline"></i> 0 Antri</span>
+                    <span id="counterSelesai" class="text-[10px] font-bold text-green-600"><i data-lucide="check-circle" class="w-3 h-3 inline"></i> 0 Selesai</span>
+                </div>
+
+                <div class="relative mb-3">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                    <input type="text" id="searchBox" onkeyup="filterDaftarPeserta()" placeholder="Cari nomor atau nama..." class="w-full py-2.5 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm font-semibold text-slate-700 transition-colors">
+                </div>
+
+                <div class="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                    <div id="listPesertaContainer" class="max-h-[55vh] overflow-y-auto divide-y divide-slate-200">
+                        <!-- Data Masuk Sini -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- MODAL REKAP -->
+    <div id="modalRekap" class="fixed inset-0 bg-slate-900/80 z-50 hidden flex flex-col justify-end">
+        <div class="bg-white w-full max-w-md mx-auto h-[75vh] rounded-t-2xl flex flex-col shadow-2xl">
+            <div class="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 class="font-bold text-sm text-slate-800">Rekap Sesi Ini</h3>
+                    <p class="text-[10px] text-slate-500" id="rekapPosName">-</p>
+                </div>
+                <button onclick="tutupRekap()" class="p-1.5 bg-slate-200 rounded-full text-slate-600 btn-click"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-3 bg-slate-100">
+                <table class="w-full text-xs text-left bg-white rounded-lg shadow-sm overflow-hidden">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="p-2 w-12 text-center">No</th>
+                            <th class="p-2">Peserta</th>
+                            <th class="p-2 text-center w-16">Nilai</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableRekapBody" class="divide-y divide-slate-100">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // STATE GLOBAL PRAMUKA GARUDA
+        let dbAspek = []; 
+        let dbPeserta = []; 
+        let serverScores = []; 
+        let session = JSON.parse(localStorage.getItem('garuda_session'));
+        let offlineQueue = []; 
+
+        window.onload = function() {
+            if (session) {
+                tampilkanHalamanInput();
+            } else {
+                document.getElementById('pageLogin').classList.remove('hidden');
+                fetchMasterData(); 
+            }
+            setInterval(syncServerData, 10000); 
+            setInterval(processOfflineQueue, 5000); 
+        };
+
+        async function fetchMasterData() {
+            try {
+                let res = await fetch(API_URL + "?action=getData");
+                let json = await res.json();
+                if (json.status == "success") {
+                    dbAspek = json.data.aspek;
+                    dbPeserta = json.data.peserta;
+                    localStorage.setItem('db_aspek', JSON.stringify(dbAspek));
+                    localStorage.setItem('db_peserta', JSON.stringify(dbPeserta));
+                    document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-green-500 rounded-full shadow border border-slate-700";
+                }
+            } catch (e) {
+                dbAspek = JSON.parse(localStorage.getItem('db_aspek')) || [];
+                dbPeserta = JSON.parse(localStorage.getItem('db_peserta')) || [];
+            }
+        }
+
+        function selectCategory(cat) {
+            document.getElementById('selectedCategory').value = cat;
+            
+            // Reset & Apply UI ScoutLive Logic
+            const ids = ['btnSgPa', 'btnSgPi', 'btnPgPa', 'btnPgPi'];
+            ids.forEach(id => document.getElementById(id).className = "py-3 rounded-lg border border-slate-200 flex flex-col items-center justify-center gap-1.5 opacity-50");
+            
+            let activeBtn = cat === 'Siaga PA' ? 'btnSgPa' : cat === 'Siaga PI' ? 'btnSgPi' : cat === 'Penggalang PA' ? 'btnPgPa' : 'btnPgPi';
+            let isSiaga = cat.includes('Siaga');
+            
+            if(isSiaga) {
+                document.getElementById(activeBtn).className = "py-3 rounded-lg border border-green-500 bg-green-50 flex flex-col items-center justify-center gap-1.5 opacity-100 ring-1 ring-green-200";
+            } else {
+                document.getElementById(activeBtn).className = "py-3 rounded-lg border border-red-500 bg-red-50 flex flex-col items-center justify-center gap-1.5 opacity-100 ring-1 ring-red-200";
+            }
+
+            // Filter Dropdown
+            let sel = document.getElementById('loginAspek');
+            sel.innerHTML = '<option value="">-- Pilih Aspek Penilaian --</option>';
+            let filteredAspek = dbAspek.filter(a => a[3] === cat);
+            filteredAspek.forEach(a => { sel.innerHTML += `<option value="${a[0]}">${a[1]}</option>`; });
+            
+            sel.disabled = false;
+            document.getElementById('loginPass').disabled = false;
+            document.getElementById('btnLoginSubmit').disabled = false;
+        }
+
+        function doLogin() {
+            let cat = document.getElementById('selectedCategory').value;
+            let idAspek = document.getElementById('loginAspek').value;
+            let pass = document.getElementById('loginPass').value;
+            
+            if(!cat || !idAspek || !pass) return Swal.fire({toast:true, position:'top', icon:'warning', title:'Lengkapi Data Login', showConfirmButton:false, timer:2000});
+            
+            let found = dbAspek.find(a => a[0] == idAspek);
+            if (found && found[2] == pass) {
+                session = { idAspek: found[0], namaAspek: found[1], kategori: cat };
+                localStorage.setItem('garuda_session', JSON.stringify(session));
+                document.getElementById('pageLogin').classList.add('hidden');
+                tampilkanHalamanInput();
+            } else {
+                Swal.fire({toast:true, position:'top', icon:'error', title:'Password Salah!', showConfirmButton:false, timer:2000});
+            }
+        }
+
+        function tampilkanHalamanInput() {
+            document.getElementById('pageInput').classList.remove('hidden');
+            document.getElementById('userAspekName').innerText = session.namaAspek;
+            document.getElementById('rekapPosName').innerText = session.namaAspek + " (" + session.kategori + ")";
+            
+            let b = document.getElementById('badgeKategori');
+            b.innerText = session.kategori.toUpperCase();
+            b.className = session.kategori.includes('Siaga') 
+                ? "px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-700" 
+                : "px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600";
+            
+            dbPeserta = JSON.parse(localStorage.getItem('db_peserta')) || [];
+            syncServerData(); 
+        }
+
+        // --- FUNGSI SYNC DENGAN ANTI CACHE ---
+        async function syncServerData() {
+            if(!session) return;
+            document.getElementById('syncIndicator').classList.remove('hidden');
+            try {
+                // Parameter nocache dengan timestamp dipasang agar selalu dapat data baru
+                let url = API_URL + "?action=getAdminData&nocache=" + new Date().getTime();
+                let res = await fetch(url);
+                let json = await res.json();
+                
+                if(json.status === "success") {
+                    serverScores = json.data.filter(row => row[1] === session.namaAspek);
+                    document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-green-500 rounded-full shadow border border-slate-700";
+                    renderDaftarPeserta(); 
+                }
+            } catch(e) {
+                document.getElementById('statusDot').className = "w-2.5 h-2.5 bg-red-500 rounded-full shadow border border-slate-700";
+                renderDaftarPeserta();
+            } finally {
+                document.getElementById('syncIndicator').classList.add('hidden');
+            }
+        }
+
+        function renderDaftarPeserta() {
+            let container = document.getElementById('listPesertaContainer');
+            container.innerHTML = "";
+            let keyword = document.getElementById('searchBox').value.toLowerCase();
+            
+            let listSesi = dbPeserta.filter(p => p[3] === session.kategori);
+            listSesi.sort((a,b) => String(a[0]).localeCompare(String(b[0]), undefined, {numeric: true}));
+
+            let countSelesai = 0; let countSisa = 0;
+
+            listSesi.forEach(p => {
+                let id = p[0]; let nama = p[1]; let pangkalan = p[2];
+
+                if(keyword && !String(id).toLowerCase().includes(keyword) && !nama.toLowerCase().includes(keyword)) return;
+
+                let scoreRecord = serverScores.find(r => r[2] === nama);
+                let isScored = scoreRecord ? true : false;
+                let currentScore = isScored ? scoreRecord[4] : null;
+
+                if(isScored) countSelesai++; else countSisa++;
+
+                // Styling sesuai ScoutLive
+                let bgClass = isScored ? "bg-green-50/50" : "bg-white hover:bg-slate-100";
+                let textClass = isScored ? "text-green-800" : "text-slate-700";
+                
+                let actionBtn = isScored 
+                    ? `<button onclick="bukaInputNilai('${id}', '${nama}', '${pangkalan}', true, ${currentScore})" class="px-2.5 py-1.5 bg-green-100 text-green-700 border border-green-200 rounded-lg btn-click font-bold text-[10px] flex items-center gap-1 shadow-sm"><i data-lucide="edit-3" class="w-3 h-3"></i> ${currentScore}</button>`
+                    : `<button onclick="bukaInputNilai('${id}', '${nama}', '${pangkalan}', false, 0)" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg btn-click font-bold text-xs shadow-md">NILAI</button>`;
+
+                let html = `
+                    <div class="p-2.5 ${bgClass} flex justify-between items-center transition-colors">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${isScored ? 'bg-green-200 text-green-700' : 'bg-slate-200 text-slate-600'}">
+                                ${id}
+                            </div>
+                            <div class="leading-tight">
+                                <h4 class="font-bold text-sm ${textClass}">${nama}</h4>
+                                <p class="text-[9px] ${isScored ? 'text-green-600 font-bold' : 'text-slate-400'} uppercase mt-0.5">${pangkalan}</p>
+                            </div>
+                        </div>
+                        <div>${actionBtn}</div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+            
+            document.getElementById('counterSelesai').innerHTML = `<i data-lucide="check-circle" class="w-3 h-3 inline"></i> ${countSelesai} Selesai`;
+            document.getElementById('counterSisa').innerHTML = `<i data-lucide="list" class="w-3 h-3 inline"></i> ${countSisa} Antri`;
+            lucide.createIcons();
+        }
+
+        function filterDaftarPeserta() { renderDaftarPeserta(); }
+
+        // INPUT NILAI SCOUTLIVE STYLE (Tengah & Besar)
+        function bukaInputNilai(id, nama, pangkalan, isEdit, oldScore) {
+            let titleText = isEdit ? `REVISI: No. ${id}` : `NILAI: No. ${id}`;
+            let btnText = isEdit ? `SIMPAN REVISI` : `KIRIM NILAI`;
+            let btnColor = isEdit ? '#f59e0b' : '#16a34a';
+
+            Swal.fire({
+                title: titleText,
+                html: `
+                    <p class="text-sm font-bold text-slate-600 mb-4">${nama}</p>
+                    <div class="flex justify-center mb-2">
+                        <input type="number" id="swalInputNilai" class="w-32 h-16 text-center text-4xl font-black text-blue-600 border-2 border-slate-300 rounded-xl outline-none focus:border-blue-500 focus:bg-white bg-slate-50 shadow-inner transition-colors" value="${isEdit ? oldScore : ''}" placeholder="0" inputmode="numeric">
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2">Rentang nilai 0 - 100</p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: btnText,
+                cancelButtonText: 'Batal',
+                confirmButtonColor: btnColor,
+                preConfirm: () => {
+                    const nilai = document.getElementById('swalInputNilai').value;
+                    if (!nilai) { Swal.showValidationMessage('Nilai wajib diisi!'); return false; }
+                    if (nilai < 0 || nilai > 100) { Swal.showValidationMessage('Nilai harus 0 - 100'); return false; }
+                    return nilai;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    kirimDataServer(id, nama, pangkalan, result.value, isEdit);
+                }
+            });
+            
+            setTimeout(() => document.getElementById('swalInputNilai').focus(), 100);
+        }
+
+        // --- FUNGSI PENGIRIMAN DATA (OPTIMISTIC UI) ---
+        function kirimDataServer(id, nama, pangkalan, nilai, isEdit) {
+            let paket = {
+                idAspek: session.idAspek,
+                namaAspek: session.namaAspek,
+                idPeserta: id,
+                namaPeserta: nama,
+                pangkalan: pangkalan,
+                kategori: session.kategori, // Mencegah bug 1000 baris
+                nilai: nilai,
+                action: 'input' 
+            };
+
+            // 1. Masukkan ke antrean background
+            offlineQueue.push(paket);
+            processOfflineQueue(); 
+            
+            document.getElementById('searchBox').value = ''; 
+            
+            // 2. OPTIMISTIC UI: Layar langsung berubah detik ini juga
+            let existIdx = serverScores.findIndex(r => r[2] === nama);
+            if (existIdx >= 0) {
+                serverScores[existIdx][4] = nilai; // Edit nilai lokal
+            } else {
+                serverScores.push([new Date().toISOString(), session.namaAspek, nama, pangkalan, nilai, session.idAspek+"-"+id, session.kategori]);
+            }
+            renderDaftarPeserta(); // Tampilkan perubahan!
+            
+            // 3. Notifikasi
+            Swal.fire({
+                toast: true, position: 'top', icon: 'success', 
+                title: isEdit ? 'Revisi diproses' : 'Nilai diproses', 
+                showConfirmButton: false, timer: 1500
+            });
+            
+            // 4. Sinkronisasi asli ke server ditunda 2 detik
+            setTimeout(syncServerData, 2000); 
+        }
+
+        async function processOfflineQueue() {
+            if (offlineQueue.length === 0) return;
+            let item = offlineQueue[0];
+            try {
+                await fetch(API_URL, {
+                    method: 'POST', mode: 'no-cors', headers: { "Content-Type": "text/plain" }, body: JSON.stringify(item)
+                });
+                offlineQueue.shift(); 
+                syncServerData(); 
+            } catch (err) {
+                console.log("Menunggu koneksi...");
+            }
+        }
+
+        // REKAP
+        function tampilkanRekap() {
+            document.getElementById('modalRekap').classList.remove('hidden');
+            let tbody = document.getElementById('tableRekapBody');
+            tbody.innerHTML = "";
+            
+            if(serverScores.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-4 text-slate-400 text-xs">Belum ada data yang tersimpan</td></tr>`;
+                return;
+            }
+
+            let sortedScores = [...serverScores].sort((a,b) => new Date(b[0]) - new Date(a[0]));
+
+            sortedScores.forEach((row) => {
+                let pInfo = dbPeserta.find(p => p[1] === row[2]);
+                let noId = pInfo ? pInfo[0] : "-";
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2 text-center font-bold text-slate-400 border-r border-slate-100">${noId}</td>
+                        <td class="p-2 font-bold text-slate-700 leading-tight">${row[2]}<br><span class="text-[9px] text-green-500 font-bold"><i data-lucide="check" class="w-2 h-2 inline"></i> Terkirim</span></td>
+                        <td class="p-2 text-center font-black text-blue-600 text-base border-l border-slate-100">${row[4]}</td>
+                    </tr>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function tutupRekap() { document.getElementById('modalRekap').classList.add('hidden'); }
+
+        // LOGOUT
+        function doLogout() {
+            Swal.fire({
+                title: 'Ganti Aspek / Keluar?',
+                text: "Anda akan kembali ke menu login.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, Keluar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('garuda_session');
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
