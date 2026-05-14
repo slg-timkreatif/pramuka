@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Pramuka Garuda</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .swal2-popup { font-family: sans-serif; border-radius: 1rem; }
+        
+        /* CSS CETAK */
+        @media print {
+            .no-print, nav, #loginOverlay, .tab-menu, .swal2-container { display: none !important; }
+            #printArea { display: block !important; position: absolute; top: 0; left: 0; width: 100%; background: white; color: black; }
+            body { background: white; padding: 0; margin: 0; }
+            table { width: 100%; border-collapse: collapse; border: 1px solid black; }
+            th, td { border: 1px solid black; padding: 4px; text-align: left; font-size: 11px; }
+            th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+            h2 { font-size: 16px; margin-bottom: 4px; text-align: center; }
+            p { font-size: 12px; margin-bottom: 10px; text-align: center; }
+            .print-page-break { page-break-after: always; }
+            .kop-surat { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 15px; }
+            .kop-surat h1 { font-size: 18px; font-weight: bold; margin: 0; }
+            .kop-surat p { font-size: 12px; margin: 2px 0; }
+            .tanda-tangan { margin-top: 30px; width: 100%; display: flex; justify-content: flex-end; }
+            .tanda-tangan-box { width: 250px; text-align: center; font-size: 12px; }
+            .tanda-tangan-box p.nama { font-weight: bold; text-decoration: underline; margin-top: 60px; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxu5oVXgehZ-CM-bZJLrmgGqy-eWgL3hl-1RxuMIHutSRD_hyW_BqJ6DUeOa2R2d4y7hA/exec"; // GANTI DENGAN URL WEB APP ANDA
+        const PASSWORD_ADMIN = "garuda123"; // Ganti jika password admin beda
+    </script>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-1">Admin Panel</h2>
+            <p class="text-slate-500 text-sm mb-6">Penilaian Pramuka Garuda</p>
+            <input type="password" id="inputPass" placeholder="Masukkan Password" class="w-full p-4 border-2 rounded-xl text-center font-bold tracking-widest outline-none focus:border-indigo-500 mb-4 bg-slate-50">
+            <button onclick="loginAdmin()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 transition">MASUK</button>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-slate-900 text-white shadow-md sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i data-lucide="award" class="text-indigo-400"></i>
+                <div>
+                    <h1 class="font-black text-lg leading-tight">Admin Garuda</h1>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Kwartir Ranting Selogiri</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="syncStatus" class="text-xs font-bold text-slate-400 flex items-center gap-1">
+                    <div class="w-2 h-2 rounded-full bg-red-500" id="syncDot"></div> Offline
+                </div>
+                <button onclick="loadAllData()" class="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition" title="Refresh Data">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+                <button onclick="location.reload()" class="p-2 bg-red-900/50 text-red-400 rounded-lg hover:bg-red-900 transition" title="Logout">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- KONTEN UTAMA -->
+    <main class="max-w-7xl mx-auto p-4 py-6">
+        
+        <!-- HEADER KONTROL -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 no-print">
+            
+            <div class="w-full md:w-auto">
+                <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Pilih Golongan Penilaian</label>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="setFilter('Siaga PA')" id="btnFilter-Siaga-PA" class="filter-btn px-4 py-2 rounded-xl font-bold text-xs border border-slate-200 bg-slate-50 text-slate-500 transition">SIAGA PA</button>
+                    <button onclick="setFilter('Siaga PI')" id="btnFilter-Siaga-PI" class="filter-btn px-4 py-2 rounded-xl font-bold text-xs border border-slate-200 bg-slate-50 text-slate-500 transition">SIAGA PI</button>
+                    <button onclick="setFilter('Penggalang PA')" id="btnFilter-Penggalang-PA" class="filter-btn px-4 py-2 rounded-xl font-bold text-xs border border-slate-200 bg-slate-50 text-slate-500 transition">PENGGALANG PA</button>
+                    <button onclick="setFilter('Penggalang PI')" id="btnFilter-Penggalang-PI" class="filter-btn px-4 py-2 rounded-xl font-bold text-xs border border-slate-200 bg-slate-50 text-slate-500 transition">PENGGALANG PI</button>
+                </div>
+            </div>
+
+            <div class="flex gap-2 w-full md:w-auto">
+                <button onclick="exportExcel()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> EXCEL
+                </button>
+                <button onclick="cetakPDF()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+                    <i data-lucide="printer" class="w-4 h-4"></i> CETAK PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- AREA TABEL -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden no-print" id="tableContainer">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-black text-slate-800" id="tableTitle">Matriks Nilai</h3>
+                <span class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full" id="countPeserta">0 Peserta</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-800 text-white uppercase text-xs" id="tableHead">
+                        <!-- Head digenerate dinamis -->
+                    </thead>
+                    <tbody class="divide-y divide-slate-100" id="tableBody">
+                        <!-- Body digenerate dinamis -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="loadingState" class="p-10 text-center text-slate-400 hidden">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-500"></i>
+                <p class="font-bold text-sm">Mengambil Data Server...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- PRINT AREA (Tersembunyi, hanya muncul saat print) -->
+    <div id="printArea" class="hidden">
+        <div class="kop-surat">
+            <h1>REKAPITULASI PENILAIAN PRAMUKA GARUDA</h1>
+            <p>Kwartir Ranting Gerakan Pramuka Selogiri</p>
+            <p>Tahun 2026</p>
+        </div>
+        <h2 style="text-align:left; margin-bottom: 10px;" id="printTitle">GOLONGAN: -</h2>
+        
+        <table id="printTable">
+            <thead id="printTableHead"></thead>
+            <tbody id="printTableBody"></tbody>
+        </table>
+
+        <div class="tanda-tangan">
+            <div class="tanda-tangan-box">
+                <p>Selogiri, .................... 2026</p>
+                <p>Ketua Tim Penilai</p>
+                <p class="nama">( ............................................ )</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let dbMasterPeserta = [];
+        let dbMasterAspek = [];
+        let rawDataNilai = [];
+        let currentFilter = 'Siaga PA';
+        
+        // Data Aspek Statis untuk keperluan Header Tabel
+        const aspekSiaga = ["SKU", "SKK", "HASTA KARYA", "PERTEMUAN PRAMUKA SIAGA", "PERSARI", "TIK"];
+        const aspekPenggalang = ["SKU", "SKK", "HASTA KARYA", "KEPEMIMPINAN", "BAHASA INTERNASIONAL", "TIK"];
+
+        function loginAdmin() {
+            if(document.getElementById('inputPass').value === PASSWORD_ADMIN) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                initApp();
+            } else {
+                Swal.fire({icon: 'error', title: 'Akses Ditolak', text: 'Password Salah'});
+            }
+        }
+
+        async function initApp() {
+            setFilter(currentFilter); // Set filter visual
+            loadAllData();
+            setInterval(loadAllData, 30000); // Auto refresh tiap 30 detik
+        }
+
+        function setFilter(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.className = "filter-btn px-4 py-2 rounded-xl font-bold text-xs border border-slate-200 bg-slate-50 text-slate-400 transition";
+            });
+            let btnId = 'btnFilter-' + cat.replace(' ', '-');
+            let activeBtn = document.getElementById(btnId);
+            if(activeBtn) {
+                let colorClass = cat.includes('Siaga') ? 'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-200' : 'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-200';
+                activeBtn.className = `filter-btn px-4 py-2 rounded-xl font-black text-xs border ${colorClass} transition shadow-sm`;
+            }
+            
+            document.getElementById('tableTitle').innerText = `Matriks Nilai - ${cat.toUpperCase()}`;
+            renderTable();
+        }
+
+        async function loadAllData() {
+            document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-yellow-500 animate-pulse";
+            document.getElementById('syncStatus').innerHTML = `<div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div> Syncing...`;
+            
+            if(rawDataNilai.length === 0) document.getElementById('loadingState').classList.remove('hidden');
+
+            try {
+                let nocache = new Date().getTime();
+                
+                // Fetch Master Data
+                if(dbMasterPeserta.length === 0) {
+                    let resM = await fetch(API_URL + "?action=getData&nocache=" + nocache);
+                    let jsonM = await resM.json();
+                    if(jsonM.status === "success") {
+                        dbMasterPeserta = jsonM.data.peserta;
+                        dbMasterAspek = jsonM.data.aspek;
+                    }
+                }
+
+                // Fetch Nilai
+                let resN = await fetch(API_URL + "?action=getAdminData&nocache=" + nocache);
+                let jsonN = await resN.json();
+                if(jsonN.status === "success") {
+                    rawDataNilai = jsonN.data;
+                    document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-green-500";
+                    document.getElementById('syncStatus').innerHTML = `<div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div> Online`;
+                    renderTable();
+                }
+            } catch(e) {
+                document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-red-500";
+                document.getElementById('syncStatus').innerHTML = `<div class="w-2 h-2 rounded-full bg-red-500"></div> Error`;
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        function getMatriksData() {
+            let isSiaga = currentFilter.includes("Siaga");
+            let arrAspek = isSiaga ? aspekSiaga : aspekPenggalang;
+            
+            // Filter peserta sesuai kategori aktif
+            let listPeserta = dbMasterPeserta.filter(p => p[3] === currentFilter);
+            
+            // Urutkan berdasarkan Nomor Peserta
+            listPeserta.sort((a,b) => String(a[0]).localeCompare(String(b[0]), undefined, {numeric: true}));
+
+            let matrix = [];
+            listPeserta.forEach(p => {
+                let id = p[0];
+                let nama = p[1];
+                let pang = p[2];
+                let total = 0;
+                
+                let row = { id: id, nama: nama, pangkalan: pang, scores: {}, total: 0 };
+                
+                arrAspek.forEach(aspek => {
+                    // Cari nilai di rawData (Kolom 2=NamaPeserta, Kolom 1=NamaAspek)
+                    let rec = rawDataNilai.find(r => r[2] === nama && r[1] === aspek && r[6] === currentFilter);
+                    let nilai = rec ? parseInt(rec[4]) || 0 : 0;
+                    row.scores[aspek] = nilai;
+                    total += nilai;
+                });
+                
+                row.total = total;
+                matrix.push(row);
+            });
+
+            // Urutkan berdasarkan Total Nilai Tertinggi
+            matrix.sort((a, b) => b.total - a.total);
+            
+            return { data: matrix, aspek: arrAspek };
+        }
+
+        function renderTable() {
+            if(dbMasterPeserta.length === 0) return;
+
+            let m = getMatriksData();
+            let arrAspek = m.aspek;
+            let matrixData = m.data;
+
+            document.getElementById('countPeserta').innerText = matrixData.length + " Peserta";
+
+            // RENDER HEAD
+            let thHTML = `<tr>
+                <th class="p-3 w-10 text-center">Rk</th>
+                <th class="p-3 w-16 text-center">No</th>
+                <th class="p-3">Nama Peserta</th>
+                <th class="p-3">Pangkalan</th>`;
+            
+            arrAspek.forEach(a => {
+                // Singkat nama aspek panjang agar tabel tidak terlalu lebar
+                let shortName = a.replace("PERTEMUAN PRAMUKA SIAGA", "P. PRAMUKA").replace("BAHASA INTERNASIONAL", "B. INGGRIS");
+                thHTML += `<th class="p-3 text-center whitespace-nowrap">${shortName}</th>`;
+            });
+            thHTML += `<th class="p-3 text-center bg-indigo-600 text-white font-black rounded-tr-lg">TOTAL</th>
+                <th class="p-3 text-center">Aksi</th>
+            </tr>`;
+            document.getElementById('tableHead').innerHTML = thHTML;
+            document.getElementById('printTableHead').innerHTML = thHTML.replace('<th class="p-3 text-center">Aksi</th>', ''); // Hilangkan aksi untuk print
+
+            // RENDER BODY
+            let tbHTML = "";
+            let pTbHTML = "";
+            let rank = 1;
+
+            if(matrixData.length === 0) {
+                tbHTML = `<tr><td colspan="${arrAspek.length + 6}" class="p-8 text-center text-slate-400 font-bold">Tidak ada data peserta untuk kategori ini.</td></tr>`;
+            } else {
+                matrixData.forEach((row, index) => {
+                    // Cek peringkat seri (tie)
+                    if(index > 0 && row.total < matrixData[index-1].total) rank = index + 1;
+
+                    let trClass = "hover:bg-slate-50 transition-colors";
+                    if(rank <= 3) trClass = "bg-yellow-50 hover:bg-yellow-100"; // Highlight Top 3
+
+                    let rHTML = `<tr class="${trClass}">
+                        <td class="p-3 text-center font-black ${rank <= 3 ? 'text-yellow-600' : 'text-slate-400'}">${rank}</td>
+                        <td class="p-3 text-center font-bold text-slate-500 border-r border-slate-100">${row.id}</td>
+                        <td class="p-3 font-bold text-slate-800">${row.nama}</td>
+                        <td class="p-3 text-xs text-slate-500 border-r border-slate-100">${row.pangkalan}</td>`;
+                    
+                    let ptHTML = `<tr>
+                        <td style="text-align:center;">${rank}</td>
+                        <td style="text-align:center;">${row.id}</td>
+                        <td>${row.nama}</td>
+                        <td>${row.pangkalan}</td>`;
+
+                    arrAspek.forEach(aspek => {
+                        let score = row.scores[aspek];
+                        let scoreClass = score > 0 ? "font-bold text-slate-800" : "text-slate-300";
+                        rHTML += `<td class="p-3 text-center ${scoreClass}">${score || '-'}</td>`;
+                        ptHTML += `<td style="text-align:center;">${score || '-'}</td>`;
+                    });
+
+                    rHTML += `<td class="p-3 text-center font-black text-indigo-600 bg-indigo-50 border-l border-white text-base">${row.total}</td>
+                        <td class="p-2 text-center">
+                            <button onclick="resetPeserta('${row.nama}')" class="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition" title="Hapus Semua Nilai Peserta Ini">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                    
+                    ptHTML += `<td style="text-align:center; font-weight:bold;">${row.total}</td></tr>`;
+
+                    tbHTML += rHTML;
+                    pTbHTML += ptHTML;
+                });
+            }
+
+            document.getElementById('tableBody').innerHTML = tbHTML;
+            document.getElementById('printTableBody').innerHTML = pTbHTML;
+            lucide.createIcons();
+        }
+
+        // AKSI HAPUS NILAI SPESIFIK 1 PESERTA
+        async function resetPeserta(nama) {
+            Swal.fire({
+                title: 'Hapus Nilai?',
+                text: `Hapus SEMUA nilai milik ${nama}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Ya, Hapus!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    // Cari semua kunci validasi milik nama ini
+                    let records = rawDataNilai.filter(r => r[2] === nama && r[6] === currentFilter);
+                    if(records.length === 0) return Swal.fire('Info', 'Belum ada nilai untuk dihapus', 'info');
+
+                    Swal.fire({title: 'Menghapus...', allowOutsideClick: false, didOpen: () => {Swal.showLoading()}});
+
+                    // Hapus satu per satu via API
+                    for(let rec of records) {
+                        let kunci = rec[5];
+                        try {
+                            await fetch(API_URL, {
+                                method: 'POST', mode: 'no-cors',
+                                body: JSON.stringify({action: 'delete', password: PASSWORD_ADMIN, kunci: kunci})
+                            });
+                        } catch(e) { console.log(e); }
+                    }
+                    
+                    setTimeout(() => {
+                        Swal.fire('Terhapus!', 'Nilai berhasil direset.', 'success');
+                        loadAllData();
+                    }, 1000);
+                }
+            });
+        }
+
+        function exportExcel() {
+            let isSiaga = currentFilter.includes("Siaga");
+            let arrAspek = isSiaga ? aspekSiaga : aspekPenggalang;
+            let title = `REKAPITULASI PENILAIAN PRAMUKA GARUDA ${currentFilter.toUpperCase()} TAHUN 2026`;
+            
+            // Format Array untuk SheetJS
+            let ws_data = [
+                [title], [], [], // Space
+                ["PERINGKAT", "NO UNDI", "NAMA PESERTA", "PANGKALAN", ...arrAspek, "TOTAL NILAI"]
+            ];
+
+            let m = getMatriksData();
+            let rank = 1;
+
+            m.data.forEach((row, index) => {
+                if(index > 0 && row.total < m.data[index-1].total) rank = index + 1;
+                
+                let rData = [rank, row.id, row.nama, row.pangkalan];
+                arrAspek.forEach(a => rData.push(row.scores[a] || 0));
+                rData.push(row.total);
+                
+                ws_data.push(rData);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            
+            // Auto width columns
+            const wscols = [{wch:10}, {wch:10}, {wch:35}, {wch:30}];
+            arrAspek.forEach(() => wscols.push({wch:15}));
+            wscols.push({wch:15});
+            ws['!cols'] = wscols;
+
+            XLSX.utils.book_append_sheet(wb, ws, "Rekap_Nilai");
+            XLSX.writeFile(wb, `Rekap_Garuda_${currentFilter.replace(" ", "_")}.xlsx`);
+        }
+
+        function cetakPDF() {
+            document.getElementById('printTitle').innerText = "GOLONGAN: " + currentFilter.toUpperCase();
+            window.print();
+        }
+
+    </script>
+</body>
+</html>
